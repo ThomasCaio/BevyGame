@@ -1,2 +1,0 @@
-# BevyGame
-Learning Bevy Engine
