@@ -1,0 +1,3 @@
+ItemList(
+    leather_armor: {title: "Leather Armor", description: "Light armor", slot: ItemSlot::Chest, attributes: Attribute{value: 10., AttributeType::Damage}}
+)
