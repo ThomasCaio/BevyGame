@@ -2,7 +2,7 @@ use std::{process::Child, time::Duration};
 
 use bevy::{ecs::{query::QueryEntityError, system::EntityCommands}, input::{keyboard::KeyboardInput, mouse::MouseButtonInput}, math::{Vec2, Vec3}, prelude::{*
     }, render::{camera::Camera, pipeline::RenderPipeline, render_graph::base::MainPass}, sprite::{QUAD_HANDLE, SPRITE_PIPELINE_HANDLE}};
-use crate::{LocalPlayer, combat::{Attack, Combat, LockedTarget}, config::*, entities::{Body, Player, Speed}};
+use crate::{LocalPlayer, combat::{Attack, Combat, CombatText, LockedTarget}, config::*, entities::{Body, Player, Speed}};
 
 pub struct InputPlugin;
 
@@ -229,13 +229,17 @@ fn movement_system(mut move_events: EventReader<ChangePositionEvent>, mut player
     }
 }
 
-fn update_player_timers(time :Res<Time>, mut speeds: Query<&mut Speed>, mut attacks: Query<&mut Attack>) {
+fn update_player_timers(time :Res<Time>, mut speeds: Query<&mut Speed>, mut attacks: Query<&mut Attack>, mut ct_timers: Query<(&mut Timer, &CombatText)>) {
     for mut speed in speeds.iter_mut() {
         speed.interval.tick(time.delta());
     }
     for mut attack in attacks.iter_mut() {
         attack.interval.tick(time.delta());
         // println!("{:?}", combat.attack.interval);
+    }
+
+    for (mut timer, _) in ct_timers.iter_mut() {
+        timer.tick(time.delta());
     }
 }
 

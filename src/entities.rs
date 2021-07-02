@@ -1,7 +1,7 @@
 use std::time::Duration;
 use bevy::core::Timer;
 use bevy::prelude::{*};
-use crate::combat::{Combat, Health};
+use crate::combat::{Combat, CombatTextBundle, CombatText, Health};
 use crate::config::TILE_SIZE;
 use crate::{HealthManaBar, HealthManaBarBundle, item::*};
 
@@ -12,6 +12,7 @@ impl Plugin for EntityPlugin {
     fn build(&self, app: &mut AppBuilder) {
         app
         .add_system(healthbar_change.system())
+        .add_system(combat_text.system())
         ;
     }
 }
@@ -24,9 +25,22 @@ fn healthbar_change(
         for child in children.iter() {
             if let Ok((mut sprite, mut transform, _)) = bars.get_mut(*child) {
                 let percent = health.value / health.max_value;
-                // println!("{:?}", (sprite.size, health, percent));
                 sprite.size = Vec2::new(TILE_SIZE * percent, sprite.size.y);
                 transform.translation.x = ((TILE_SIZE/2.) * percent) - (TILE_SIZE/2.);
+            }
+        }
+    }
+}
+
+fn combat_text(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &Timer, &CombatText)>,
+) {
+    for (entity, mut transform, timer, _) in query.iter_mut() {
+        if timer.finished() {
+            transform.translation.y += 0.6;
+            if transform.translation.y > 20. {
+                commands.entity(entity).despawn();
             }
         }
     }

@@ -95,7 +95,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, m
         text: Text::with_section(
             "Demnok",
             TextStyle{
-                font: asset_server.load("fonts/GameFont.ttf"),
+                font: asset_server.load("fonts/font.ttf"),
                 font_size: 10.0,
                 color: Color::WHITE,
                 },

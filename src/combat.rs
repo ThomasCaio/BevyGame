@@ -1,8 +1,8 @@
 extern crate rand;
 use rand::{Rng, thread_rng};
 
-use std::{borrow::Borrow, time::Duration};
-use bevy::{ecs::bundle, prelude::*};
+use std::{borrow::Borrow, collections::btree_map::Range, time::Duration};
+use bevy::{ecs::bundle, prelude::*, render::{color, render_graph::base::MainPass}, text::Text2dSize};
 
 use crate::{LocalPlayer, entities::{Name, Player}, item::{AttributeType, Equipments, Item}, main};
 
@@ -19,6 +19,7 @@ impl Plugin for CombatPlugin {
         .add_event::<DamageEvent>()
         .add_event::<DeathEvent>()
         .add_event::<SpawnEvent>()
+        .add_event::<CombatText>()
         .add_event::<ComplexDamageEvent>()
         .add_system(attack_system.system())
         .add_system(miss_system.system())
@@ -34,6 +35,9 @@ impl Plugin for CombatPlugin {
 
 
 pub struct DeathEvent{attacker: Entity, defender: Entity, damage: ComplexDamage}
+
+#[derive(Debug)]
+pub struct CombatText;
 
 pub struct SpawnEvent(Entity);
 
@@ -82,7 +86,7 @@ pub(crate)struct Combat {
 impl Default for Combat {
     fn default() -> Self {
         Combat {
-            health: Health { max_value: 100., value: 100. },
+            health: Health { max_value: 10000., value: 10000. },
             mana: Mana { max_value: 50., value: 50. },
             attack: Attack::default(),
             defense: Defense::default()
@@ -114,11 +118,11 @@ pub struct Attack{
 impl Default for Attack{
     fn default() -> Attack {
         Attack{
-            damage: Damage{value: 5., dtype: DamageType::Physical},
+            damage: Damage{value: 100., dtype: DamageType::Physical},
             range: 50.,
-            interval: Timer::new(Duration::from_millis(200), false),
+            interval: Timer::new(Duration::from_millis(500), false),
             base_interval: 2000,
-            rate: 50.,
+            rate: 75.,
         }
     }
 }
@@ -257,8 +261,30 @@ fn hit_system(
     }
 }
 
-fn miss_system() {
-    // TODO: fazer printar o miss
+fn miss_system(
+    mut commands: Commands,
+    mut miss_events: EventReader<MissEvent>,
+    asset_server: Res<AssetServer>
+) {
+    for event in miss_events.iter() {
+        commands.entity(event.defender)
+        .with_children(|parent| 
+            {parent.spawn_bundle(CombatTextBundle {
+            text: Text::with_section(
+                "Miss",
+                TextStyle{
+                    font: asset_server.load("fonts/font.ttf"),
+                    font_size: 12.0,
+                    color: Color::WHITE,
+                    },
+                TextAlignment{
+                    vertical: VerticalAlign::Center,
+                    horizontal: HorizontalAlign::Center,
+                },
+            ),
+            ..Default::default()
+            });});
+    }
 }
 
 fn resistance_system(
@@ -302,8 +328,10 @@ fn block_system(
 }
 
 fn damage_system(
+    mut commands: Commands,
     mut damage_event: EventReader<DamageEvent>,
     mut query: Query<&mut Health>,
+    asset_server: Res<AssetServer>,
 ) {
     for dmg in damage_event.iter() {
         let complex_damage = dmg.damage.clone();
@@ -316,6 +344,24 @@ fn damage_system(
             if health.value < 0. {
                 health.value = 0.;
             }
+
+            commands.entity(dmg.defender)
+            .with_children(|parent| 
+                {parent.spawn_bundle(CombatTextBundle {
+                text: Text::with_section(
+                    format!("{:.1}", total_damage),
+                    TextStyle{
+                        font: asset_server.load("fonts/font.ttf"),
+                        font_size: 12.0,
+                        color: Color::GRAY,
+                        },
+                    TextAlignment{
+                        vertical: VerticalAlign::Center,
+                        horizontal: HorizontalAlign::Center,
+                    },
+                ),
+                ..Default::default()
+                });});
         }
     }
 }
@@ -326,5 +372,42 @@ fn death_system(mut commands: Commands, query: Query<(Entity, &Health)>) {
             commands.entity(entity).despawn_recursive();
         }
 
+    }
+}
+
+
+#[derive(Bundle)]
+pub struct CombatTextBundle {
+    pub draw: Draw,
+    pub visible: Visible,
+    pub text: Text,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub main_pass: MainPass,
+    pub text_2d_size: Text2dSize,
+    pub timer: Timer,
+    c: CombatText,
+}
+
+impl Default for CombatTextBundle {
+    fn default() -> Self {
+        Self {
+            draw: Draw {
+                ..Default::default()
+            },
+            visible: Visible {
+                is_transparent: true,
+                ..Default::default()
+            },
+            text: Default::default(),
+            transform: Transform::from_xyz(0., 0., 501.),
+            global_transform: Default::default(),
+            main_pass: MainPass {},
+            text_2d_size: Text2dSize {
+                size: Size::default(),
+            },
+            timer: Timer::new(Duration::from_millis(25), true),
+            c: CombatText,
+        }
     }
 }
