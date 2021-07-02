@@ -362,7 +362,7 @@ impl Default for HoverBundle {
                 ..Default::default()
             },
             material: Default::default(),
-            transform: Transform::from_xyz(0., 0., 5.),
+            transform: Transform::from_xyz(0., 0., 10.),
             global_transform: Default::default(),
             locked_sprite: LockedSprite,
         }

@@ -122,7 +122,7 @@ pub struct Item{
 impl Item {
     pub fn new(title: &str) -> Option<Item> {
         match title {
-            "Sword" => Some(Item{title: "Sword".to_string(), description: "Iron small sword".to_string(), slot: ItemSlot::MainHand, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Damage(DamageType::Fire) }]}),
+            "Sword" => Some(Item{title: "Sword".to_string(), description: "Iron small sword".to_string(), slot: ItemSlot::MainHand, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Damage(DamageType::Physical) }]}),
             "Leather Armor" => Some(Item{title: "Leather Armor".to_string(), description: "Light armor".to_string(), slot: ItemSlot::Chest, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Defense }]}),
             "Wooden Shield" => Some(Item{title: "Wooden Shield".to_string(), description: "Shield made with wooden".to_string(), slot: ItemSlot::OffHand, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Resistance(DamageType::Physical) }]}),
             _ => None,

@@ -206,7 +206,9 @@ impl Default for ComplexDamage {
     }
 }
 
-fn passive_trigger() {}
+fn passive_trigger() {
+    // TODO: Thorns, Critical Strike, Bleeding, Burning, Poison, Etc.
+}
 
 fn attack_system(
     target: ResMut<LockedTarget>,
@@ -278,7 +280,7 @@ fn miss_system(
                     color: Color::WHITE,
                     },
                 TextAlignment{
-                    vertical: VerticalAlign::Center,
+                    vertical: VerticalAlign::Bottom,
                     horizontal: HorizontalAlign::Center,
                 },
             ),
@@ -327,6 +329,28 @@ fn block_system(
     }
 }
 
+fn damage_color(damage: ComplexDamage) -> Color {
+    let mut dtype = DamageType::Physical;
+    let last_value = 0.;
+    for dmg in damage {
+        if dmg.value > last_value {
+            dtype = dmg.dtype;
+        }
+    }
+    println!("{:?}", dtype);
+    match dtype {
+        DamageType::Physical => return Color::GRAY,
+        DamageType::Fire => return Color::RED,
+        DamageType::Water => return Color::BLUE,
+        DamageType::Air => return Color::PINK,
+        DamageType::Earth => return Color::GREEN,
+        DamageType::Holy => return Color::YELLOW,
+        DamageType::Death => return Color::BLACK,
+        DamageType::LifeDrain => return Color::rgba(1., 0., 0., 0.5),
+        DamageType::ManaDrain => return Color::rgba(0., 0., 1., 0.5),
+    }
+}
+
 fn damage_system(
     mut commands: Commands,
     mut damage_event: EventReader<DamageEvent>,
@@ -353,10 +377,10 @@ fn damage_system(
                     TextStyle{
                         font: asset_server.load("fonts/font.ttf"),
                         font_size: 12.0,
-                        color: Color::GRAY,
+                        color: damage_color(dmg.damage.clone()),
                         },
                     TextAlignment{
-                        vertical: VerticalAlign::Center,
+                        vertical: VerticalAlign::Bottom,
                         horizontal: HorizontalAlign::Center,
                     },
                 ),
