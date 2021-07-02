@@ -1,9 +1,9 @@
 use std::time::Duration;
 use bevy::core::Timer;
 use bevy::prelude::{*};
-use crate::combat::{Combat, CombatTextBundle, CombatText, Health};
+use crate::combat::{Combat, CombatText, Health};
 use crate::config::TILE_SIZE;
-use crate::{HealthManaBar, HealthManaBarBundle, item::*};
+use crate::{HealthManaBar, item::*};
 
 
 pub struct EntityPlugin;
@@ -24,6 +24,7 @@ fn healthbar_change(
     for (entity, health, children) in query.iter() {
         for child in children.iter() {
             if let Ok((mut sprite, mut transform, _)) = bars.get_mut(*child) {
+                println!("{:?}",(sprite));
                 let percent = health.value / health.max_value;
                 sprite.size = Vec2::new(TILE_SIZE * percent, sprite.size.y);
                 transform.translation.x = ((TILE_SIZE/2.) * percent) - (TILE_SIZE/2.);

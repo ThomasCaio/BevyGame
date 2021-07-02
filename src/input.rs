@@ -324,7 +324,8 @@ fn push_hover_children(entity: Entity, commands: &mut Commands, materials: &mut 
     .with_children(|entity| {
         entity
         .spawn_bundle(HoverBundle {
-            material: materials.add(Color::rgba(1., 0., 0., 0.2).into()),
+            material: materials.add(Color::rgba(1., 0., 0., 0.2).into()), 
+            transform: Transform::from_xyz(0., 0., 0.),
             ..Default::default()});
     }).id();
 }
@@ -332,7 +333,8 @@ fn push_hover_children(entity: Entity, commands: &mut Commands, materials: &mut 
 pub struct LockedSprite;
 
 #[derive(Bundle)]
-struct HoverBundle {
+struct HoverBundle {   
+    pub locked_sprite: LockedSprite,
     pub sprite: Sprite,
     pub mesh: Handle<Mesh>,
     pub material: Handle<ColorMaterial>,
@@ -342,7 +344,6 @@ struct HoverBundle {
     pub render_pipelines: RenderPipelines,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
-    pub locked_sprite: LockedSprite,
 }
 impl Default for HoverBundle {
     fn default() -> Self {

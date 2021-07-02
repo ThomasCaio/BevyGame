@@ -66,11 +66,11 @@ impl Default for HealthManaBarBundle {
             main_pass: MainPass,
             draw: Default::default(),
             sprite: Sprite {
-                size: Vec2::new(0., 0.),
+                size: Vec2::new(TILE_SIZE, 3.),
                 ..Default::default()
             },
             material: Default::default(),
-            transform: Transform::from_xyz(0., 0., 2.),
+            transform: Transform::from_xyz(0., 0., 7.),
             global_transform: Default::default(),
             bar: HealthManaBar,
         }
