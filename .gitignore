@@ -1,5 +1,4 @@
 /target
-.gitignore
 build.rs
 icon.ico
 game.exe
