@@ -1,4 +1,4 @@
 /target
 build.rs
 icon.ico
-game.exe
+*.exe

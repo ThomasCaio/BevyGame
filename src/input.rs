@@ -20,7 +20,6 @@ impl Plugin for InputPlugin {
         .add_system(track_world_mouse_debug.system())
         .add_system(input_handler.system())
         .add_system(mouse_position_trigger.system())
-        .add_system(collision_system.system())
         .add_system(movement_system.system())
         .add_system(get_entity_at_mouse_position.system())
         .add_system(lock_on_target.system())
@@ -193,38 +192,38 @@ fn track_mouse_position(
 #[derive(Debug)]
 struct ChangePositionEvent(Entity, Vec3);
 
-fn collision_system(
+fn movement_system(
     mut move_events: EventReader<MoveEvent>,
-    mut change_position_event: EventWriter<ChangePositionEvent>,
     mut queryset: QuerySet<(
-        Query<&Transform, With<Body>>,
+        Query<(&mut Speed, &mut Transform), With<Body>>,
         Query<(Entity, &Transform), With<Body>>,
     )>,
 ) {
-    let mut collision = false;
     for event in move_events.iter() {
-        let transform1 = queryset.q0_mut().get_mut(event.0).unwrap();
-        let delta = transform1.translation.clone() + event.1;
-        for (_, transform2) in queryset.q1().iter() {
-            if transform2.translation == delta {
-                collision = true;
-            }
-        }
-        if !collision {
-            change_position_event.send(ChangePositionEvent(event.0, event.1));
-        }
-    }
-}
-
-
-fn movement_system(mut move_events: EventReader<ChangePositionEvent>, mut entities: Query<(&mut Transform, &mut Speed)>) {
-    for event in move_events.iter() {
-        if let Ok((mut transform, mut speed)) = entities.get_mut(event.0) { 
-            let duration = Duration::from_millis(speed.base_interval as u64 - speed.value as u64);
-            speed.interval.set_duration(duration);
+        let mut r#move = false;
+        let mut collision = false;
+        let result = queryset.q0_mut().get_mut(event.0);
+        if let Ok((speed, transform)) = result {
             if speed.interval.finished() {
+                let delta = transform.translation.clone() + event.1;
+                for (_, transform2) in queryset.q1().iter() {
+                    if transform2.translation == delta {
+                        collision = true;
+                    }
+                }
+                if !collision {
+                    r#move = true;
+                }
+            }
+            
+        }
+        if r#move {
+            if let Ok((mut speed, mut transform)) = queryset.q0_mut().get_mut(event.0) {
+                let duration = Duration::from_millis(speed.base_interval as u64 - speed.value as u64);
+                speed.interval.set_duration(duration);
                 transform.translation += event.1;
-                speed.interval.reset();
+                speed.interval.reset()
+                
             }
         }
     }

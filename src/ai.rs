@@ -73,7 +73,7 @@ fn find_an_enemy(mut monsters: Query<(&Transform, &mut Monster)>, players: Query
         for (p_entity, p_name, p_transform) in players.iter() {
             if calculate_distance(m_transform.translation, p_transform.translation) < monster.vision_range {
                 monster.enemy = Some(p_entity);
-                println!("{:?}", (p_name));
+                // println!("{:?}", (p_name));
                 break;
             }
             monster.enemy = None;
@@ -88,12 +88,10 @@ fn monster_ai(
 ) {
     for (m_entity, mut monster, m_transform, mut m_speed) in monsters.iter_mut() {
         for (p_entity, _, p_transform) in players.iter() {
-            if m_speed.interval.finished() {
-                if let Some(me) = monster.enemy {
-                    if me == p_entity {
-                        let vec = follow_enemy(*m_transform, *p_transform);
-                        move_events.send(MoveEvent(m_entity, vec));
-                    }
+            if let Some(me) = monster.enemy {
+                if me == p_entity {
+                    let vec = follow_enemy(*m_transform, *p_transform);
+                    move_events.send(MoveEvent(m_entity, vec));
                 }
             }
         }
