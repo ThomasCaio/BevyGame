@@ -2,14 +2,16 @@
 mod combat;
 mod config;
 mod entities;
-mod input;
+pub mod input;
 mod item;
 pub mod items;
+pub mod ai;
 
 use input::*;
 use config::*;
 use entities::*;
 use combat::*;
+use ai::*;
 
 use bevy::{prelude::*, render::{pipeline::RenderPipeline, render_graph::base::MainPass}, sprite::{QUAD_HANDLE, SPRITE_PIPELINE_HANDLE}, window::WindowMode};
 
@@ -30,6 +32,7 @@ fn main() {
     .add_plugin(InputPlugin)
     .add_plugin(CombatPlugin)
     .add_plugin(EntityPlugin)
+    .add_plugin(AiPlugin)
     .add_startup_system(setup.system())
     .insert_resource(LocalPlayer(Entity::new(0)))
     .run();
@@ -125,7 +128,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, m
                 ..Default::default()
             },
             material: materials.add(Color::GREEN.into()),
-            transform: Transform::from_xyz(0., 14., 7.), // 14 = 16(half tile) - 2(half sprite_height)
+            transform: Transform::from_xyz(0., 14., 7.),
             ..Default::default()}
         );})
     .id();
@@ -133,7 +136,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, m
 
     // #Ent 2
     commands.spawn()
-    .insert_bundle(PlayerComponents::new("Monster1"))
+    .insert_bundle(MonsterBundle::new("Monster #1"))
     .insert_bundle(SpriteBundle {
         sprite: Sprite {
             size: Vec2::new(TILE_SIZE, TILE_SIZE),
@@ -143,7 +146,6 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, m
         transform: Transform::from_xyz(TILE_SIZE, 0., 0.),
         ..Default::default()
     })
-    .insert(Combat::default())
     .with_children(|parent| 
         {parent.spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -169,7 +171,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, m
 
     // #Ent 3
     commands.spawn()
-    .insert_bundle(PlayerComponents::new("Monster2"))
+    .insert_bundle(MonsterBundle::new("Monster #2"))
     .insert_bundle(SpriteBundle {
         sprite: Sprite {
             size: Vec2::new(TILE_SIZE, TILE_SIZE),
@@ -179,7 +181,41 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, m
         transform: Transform::from_xyz(-TILE_SIZE, 0., 0.),
         ..Default::default()
     })
-    .insert(Combat::default())
+    .with_children(|parent| 
+        {parent.spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                size: Vec2::new(TILE_SIZE, 4.),
+                ..Default::default()
+            },
+            material: materials.add(Color::BLACK.into()),
+            transform: Transform::from_xyz(0., 14., 6.), // 14 = 16(half tile) - 2(half sprite_height)
+            ..Default::default()}
+        );})
+    .with_children(|parent| 
+        {parent.spawn_bundle(HealthManaBarBundle {
+            sprite: Sprite {
+                size: Vec2::new(TILE_SIZE, 3.),
+                ..Default::default()
+            },
+            material: materials.add(Color::GREEN.into()),
+            transform: Transform::from_xyz(0., 14., 7.), // 14 = 16(half tile) - 2(half sprite_height)
+            ..Default::default()}
+        );})
+    .id()
+    ;
+
+    // # Ent 4
+    commands.spawn()
+    .insert_bundle(MonsterBundle::new("Monster #3"))
+    .insert_bundle(SpriteBundle {
+        sprite: Sprite {
+            size: Vec2::new(TILE_SIZE, TILE_SIZE),
+            ..Default::default()
+        },
+        material: materials.add(Color::BLUE.into()),
+        transform: Transform::from_xyz(-TILE_SIZE, TILE_SIZE, 0.),
+        ..Default::default()
+    })
     .with_children(|parent| 
         {parent.spawn_bundle(SpriteBundle {
             sprite: Sprite {

@@ -24,7 +24,6 @@ fn healthbar_change(
     for (entity, health, children) in query.iter() {
         for child in children.iter() {
             if let Ok((mut sprite, mut transform, _)) = bars.get_mut(*child) {
-                println!("{:?}",(sprite));
                 let percent = health.value / health.max_value;
                 sprite.size = Vec2::new(TILE_SIZE * percent, sprite.size.y);
                 transform.translation.x = ((TILE_SIZE/2.) * percent) - (TILE_SIZE/2.);
@@ -91,7 +90,7 @@ impl Default for PlayerComponents {
 
 #[derive(Debug)]
 pub struct Name{
-    value: String
+    pub value: String
 }
 
 #[derive(Debug, Clone)]

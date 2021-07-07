@@ -1,4 +1,5 @@
 use std::{process::Child, time::Duration};
+use super::ai::Monster;
 
 use bevy::{ecs::{query::QueryEntityError, system::EntityCommands}, input::{keyboard::KeyboardInput, mouse::MouseButtonInput}, math::{Vec2, Vec3}, prelude::{*
     }, render::{camera::Camera, pipeline::RenderPipeline, render_graph::base::MainPass}, sprite::{QUAD_HANDLE, SPRITE_PIPELINE_HANDLE}};
@@ -62,7 +63,7 @@ fn coordinate(xy: Vec2) -> Vec2{
 }
 
 #[derive(Debug)]
-struct MoveEvent(Entity, Vec3);
+pub struct MoveEvent(pub Entity, pub Vec3);
 
 #[derive(Default,Debug)]
 struct InputTimer(Timer);
@@ -97,7 +98,7 @@ fn get_entity_at_mouse_position(sizes: Query<(Entity, &Transform, &Sprite,), (Wi
 }
 
 fn mouse_position_trigger(mut events: EventReader<MouseClickEvent>, entity_at_mouse: Res<EntityAtMouse>) {
-    for event in events.iter() {
+    for _ in events.iter() {
         if let Some(t) = entity_at_mouse.0 {
             // println!("{:?}", t);
         }
@@ -189,6 +190,7 @@ fn track_mouse_position(
     mouse.coordinated_position = coordinate(mouse.world_position - Vec2::new(TILE_SIZE / 2., TILE_SIZE / 2.));
 }
 
+#[derive(Debug)]
 struct ChangePositionEvent(Entity, Vec3);
 
 fn collision_system(
@@ -203,7 +205,6 @@ fn collision_system(
     for event in move_events.iter() {
         let transform1 = queryset.q0_mut().get_mut(event.0).unwrap();
         let delta = transform1.translation.clone() + event.1;
-
         for (_, transform2) in queryset.q1().iter() {
             if transform2.translation == delta {
                 collision = true;
@@ -216,9 +217,9 @@ fn collision_system(
 }
 
 
-fn movement_system(mut move_events: EventReader<ChangePositionEvent>, mut players: Query<(&mut Transform, &mut Speed), With<Player>>) {
+fn movement_system(mut move_events: EventReader<ChangePositionEvent>, mut entities: Query<(&mut Transform, &mut Speed)>) {
     for event in move_events.iter() {
-        if let Ok((mut transform, mut speed)) = players.get_mut(event.0) { 
+        if let Ok((mut transform, mut speed)) = entities.get_mut(event.0) { 
             let duration = Duration::from_millis(speed.base_interval as u64 - speed.value as u64);
             speed.interval.set_duration(duration);
             if speed.interval.finished() {
@@ -229,16 +230,15 @@ fn movement_system(mut move_events: EventReader<ChangePositionEvent>, mut player
     }
 }
 
-fn update_player_timers(time :Res<Time>, mut speeds: Query<&mut Speed>, mut attacks: Query<&mut Attack>, mut ct_timers: Query<(&mut Timer, &CombatText)>) {
+fn update_player_timers(time :Res<Time>, mut speeds: Query<&mut Speed>, mut attacks: Query<&mut Attack>, mut ct_timers: Query<&mut Timer, With<CombatText>>,
+) {
     for mut speed in speeds.iter_mut() {
         speed.interval.tick(time.delta());
     }
     for mut attack in attacks.iter_mut() {
         attack.interval.tick(time.delta());
-        // println!("{:?}", combat.attack.interval);
     }
-
-    for (mut timer, _) in ct_timers.iter_mut() {
+    for mut timer in ct_timers.iter_mut() {
         timer.tick(time.delta());
     }
 }
@@ -254,7 +254,6 @@ pub struct Mouse {
 
 #[derive(Debug)]
 pub struct MouseClickEvent {
-    // pub timestamp: f64,
     pub button: MouseButton,
     pub ui_position: Vec2,
     pub world_position: Vec2,
@@ -275,8 +274,6 @@ pub fn lock_on_target(mut commands: Commands,
     children_query: Query<(Entity, &Parent), With<LockedSprite>>
 ) {
     for event in mouse_events.iter(){
-
-        // VER SE ISSO INTERFERE NO HP BAR
         if event.button == MouseButton::Right{
             match (entity.0, target.0) {
                 (None, None) => (),
@@ -320,14 +317,14 @@ pub struct MousePositionDebug;
 
 
 fn push_hover_children(entity: Entity, commands: &mut Commands, materials: &mut ResMut<Assets<ColorMaterial>>) {
-    let parent = commands.entity(entity)
+    commands.entity(entity)
     .with_children(|entity| {
         entity
         .spawn_bundle(HoverBundle {
             material: materials.add(Color::rgba(1., 0., 0., 0.2).into()), 
             transform: Transform::from_xyz(0., 0., 0.),
             ..Default::default()});
-    }).id();
+    });
 }
 
 pub struct LockedSprite;

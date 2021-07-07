@@ -118,7 +118,7 @@ pub struct Attack{
 impl Default for Attack{
     fn default() -> Attack {
         Attack{
-            damage: Damage{value: 100., dtype: DamageType::Physical},
+            damage: Damage{value: 1000., dtype: DamageType::Physical},
             range: 50.,
             interval: Timer::new(Duration::from_millis(500), false),
             base_interval: 2000,
@@ -356,6 +356,8 @@ fn damage_system(
     mut damage_event: EventReader<DamageEvent>,
     mut query: Query<&mut Health>,
     asset_server: Res<AssetServer>,
+    mut death_events: EventWriter<DeathEvent>
+
 ) {
     for dmg in damage_event.iter() {
         let complex_damage = dmg.damage.clone();
@@ -367,6 +369,7 @@ fn damage_system(
             health.value -= total_damage;
             if health.value < 0. {
                 health.value = 0.;
+                death_events.send(DeathEvent{attacker: dmg.attacker, defender: dmg.defender, damage: dmg.damage.clone()});
             }
 
             commands.entity(dmg.defender)
@@ -390,7 +393,10 @@ fn damage_system(
     }
 }
 
-fn death_system(mut commands: Commands, query: Query<(Entity, &Health)>) {
+fn death_system(
+    mut commands: Commands, 
+    query: Query<(Entity, &Health)>,
+) {
     for (entity, health) in query.iter() {
         if health.value <= 0. {
             commands.entity(entity).despawn_recursive();
