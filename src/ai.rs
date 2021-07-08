@@ -1,21 +1,24 @@
+use super::input::MoveEvent;
 use std::time::Duration;
-use super::input::{MoveEvent};
-
 
 use bevy::prelude::*;
 
-use crate::{combat::Combat, config::TILE_SIZE, entities::{Body, Player, Speed, Name}};
+use crate::{
+    combat::Combat,
+    config::TILE_SIZE,
+    entities::{Body, Name, Player, Speed},
+};
 
 pub struct AiPlugin;
 
 impl Plugin for AiPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app
-        .add_system(find_an_enemy.system())
-        .add_system(monster_ai.system())
-        ;
+        app.add_system(find_an_enemy.system())
+            .add_system(monster_ai.system());
     }
 }
+
+struct ExperiencePoints(u32);
 
 #[derive(Bundle)]
 pub struct MonsterBundle {
@@ -23,6 +26,7 @@ pub struct MonsterBundle {
     monster: Monster,
     body: Body,
     speed: Speed,
+    experience: ExperiencePoints,
 
     #[bundle]
     combat: Combat,
@@ -31,7 +35,9 @@ pub struct MonsterBundle {
 impl MonsterBundle {
     pub fn new(name: &str) -> Self {
         MonsterBundle {
-            name: Name{value: name.to_string()},
+            name: Name {
+                value: name.to_string(),
+            },
             ..Default::default()
         }
     }
@@ -40,15 +46,20 @@ impl MonsterBundle {
 impl Default for MonsterBundle {
     fn default() -> Self {
         MonsterBundle {
-            name: Name{value: "Unamed".to_string()},
+            name: Name {
+                value: "Unamed".to_string(),
+            },
             monster: Monster::default(),
             body: Body,
-            speed: Speed{value: 0., ..Default::default()},
+            speed: Speed {
+                value: 0.,
+                ..Default::default()
+            },
             combat: Combat::default(),
+            experience: ExperiencePoints(0),
         }
     }
 }
-
 
 pub struct Monster {
     pub enemy: Option<Entity>,
@@ -68,10 +79,15 @@ fn calculate_distance(t1: Vec3, t2: Vec3) -> f32 {
     f32::sqrt(f32::powf(t2.x - t1.x, 2.) + f32::powf(t2.y - t1.y, 2.))
 }
 
-fn find_an_enemy(mut monsters: Query<(&Transform, &mut Monster)>, players: Query<(Entity, &Name, &Transform), With<Player>>) {
+fn find_an_enemy(
+    mut monsters: Query<(&Transform, &mut Monster)>,
+    players: Query<(Entity, &Name, &Transform), With<Player>>,
+) {
     for (m_transform, mut monster) in monsters.iter_mut() {
         for (p_entity, p_name, p_transform) in players.iter() {
-            if calculate_distance(m_transform.translation, p_transform.translation) < monster.vision_range {
+            if calculate_distance(m_transform.translation, p_transform.translation)
+                < monster.vision_range
+            {
                 monster.enemy = Some(p_entity);
                 // println!("{:?}", (p_name));
                 break;
@@ -104,20 +120,16 @@ fn follow_enemy(m_transform: Transform, p_transform: Transform) -> Vec3 {
     let mut z: f32 = 0.;
     if m_transform.translation.x < p_transform.translation.x {
         x = TILE_SIZE;
-    }
-    else if m_transform.translation.x > p_transform.translation.x {
+    } else if m_transform.translation.x > p_transform.translation.x {
         x = -TILE_SIZE;
-    }
-    else {
+    } else {
         x = 0.;
     }
     if m_transform.translation.y < p_transform.translation.y {
         y = TILE_SIZE;
-    }
-    else if m_transform.translation.y > p_transform.translation.y {
+    } else if m_transform.translation.y > p_transform.translation.y {
         y = -TILE_SIZE;
-    }
-    else {
+    } else {
         y = 0.;
     }
     z = m_transform.translation.z;

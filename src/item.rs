@@ -17,12 +17,12 @@ impl Equipments {
     pub fn get_attributes(&self, attribute: AttributeType) -> f32 {
         let mut total_value = 0.;
         let equipments = vec![
-            self.mainhand.as_ref(), 
-            self.offhand.as_ref(), 
-            self.neck.as_ref(), 
-            self.head.as_ref(), 
-            self.chest.as_ref(), 
-            self.legs.as_ref(), 
+            self.mainhand.as_ref(),
+            self.offhand.as_ref(),
+            self.neck.as_ref(),
+            self.head.as_ref(),
+            self.chest.as_ref(),
+            self.legs.as_ref(),
             self.boots.as_ref(),
             self.leftfinger.as_ref(),
             self.rightfinger.as_ref(),
@@ -108,9 +108,8 @@ pub enum ItemSlot {
     RightFinger,
 }
 
-
 #[derive(Debug, Clone)]
-pub struct Item{
+pub struct Item {
     pub title: String,
     pub description: String,
     pub slot: ItemSlot,
@@ -122,16 +121,40 @@ pub struct Item{
 impl Item {
     pub fn new(title: &str) -> Option<Item> {
         match title {
-            "Sword" => Some(Item{title: "Sword".to_string(), description: "Iron small sword".to_string(), slot: ItemSlot::MainHand, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Damage(DamageType::Physical) }]}),
-            "Leather Armor" => Some(Item{title: "Leather Armor".to_string(), description: "Light armor".to_string(), slot: ItemSlot::Chest, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Defense }]}),
-            "Wooden Shield" => Some(Item{title: "Wooden Shield".to_string(), description: "Shield made with wooden".to_string(), slot: ItemSlot::OffHand, attributes: vec![Attribute{value: 10., attribute_type: AttributeType::Resistance(DamageType::Physical) }]}),
+            "Sword" => Some(Item {
+                title: "Sword".to_string(),
+                description: "Iron small sword".to_string(),
+                slot: ItemSlot::MainHand,
+                attributes: vec![Attribute {
+                    value: 10.,
+                    attribute_type: AttributeType::Damage(DamageType::Physical),
+                }],
+            }),
+            "Leather Armor" => Some(Item {
+                title: "Leather Armor".to_string(),
+                description: "Light armor".to_string(),
+                slot: ItemSlot::Chest,
+                attributes: vec![Attribute {
+                    value: 10.,
+                    attribute_type: AttributeType::Defense,
+                }],
+            }),
+            "Wooden Shield" => Some(Item {
+                title: "Wooden Shield".to_string(),
+                description: "Shield made with wooden".to_string(),
+                slot: ItemSlot::OffHand,
+                attributes: vec![Attribute {
+                    value: 10.,
+                    attribute_type: AttributeType::Resistance(DamageType::Physical),
+                }],
+            }),
             _ => None,
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Attribute{
+pub struct Attribute {
     pub value: f32,
     pub attribute_type: AttributeType,
 }
