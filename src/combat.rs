@@ -10,7 +10,8 @@ use bevy::{
 use std::{borrow::Borrow, collections::btree_map::Range, time::Duration};
 
 use crate::{
-    entities::{Name, Player},
+    ai::ExperiencePoints,
+    entities::{CurrentExperience, Name, NextLevelExperience, Player},
     item::{AttributeType, Equipments, Item},
     main, LocalPlayer,
 };
@@ -36,7 +37,8 @@ impl Plugin for CombatPlugin {
             .add_system(resistance_system.system())
             .add_system(block_system.system())
             .add_system(damage_system.system())
-            .add_system(death_system.system());
+            .add_system(death_system.system())
+            .add_system(death_drop.system());
     }
 }
 
@@ -149,9 +151,6 @@ impl Default for Attack {
     }
 }
 
-fn calculate_distance(t1: Vec3, t2: Vec3) -> f32 {
-    f32::sqrt(f32::powf(t2.x - t1.x, 2.) + f32::powf(t2.y - t1.y, 2.))
-}
 
 #[derive(Debug)]
 struct AttackEvent {
@@ -310,7 +309,7 @@ fn attack_system(
             let t1 = transforms.get(player.0);
             let t2 = transforms.get(t);
             if let (Ok(t1), Ok(t2)) = (t1, t2) {
-                if calculate_distance(t1.translation, t2.translation) < attacker_range {
+                if t1.translation.distance(t2.translation) < attacker_range {
                     if attack_attack.interval.finished() {
                         let chance = thread_rng().gen_range(0.0..=100.);
                         if attack_attack.rate > chance {
@@ -502,8 +501,7 @@ fn damage_system(
                 total_damage += d.value;
             }
             health.value -= total_damage;
-            if health.value < 0. {
-                health.value = 0.;
+            if health.value <= 0. {
                 death_events.send(DeathEvent {
                     attacker: dmg.attacker,
                     defender: dmg.defender,
@@ -532,7 +530,24 @@ fn death_system(mut commands: Commands, query: Query<(Entity, &Health)>) {
     }
 }
 
-fn create_combat_text(
+fn death_drop(
+    mut queryset: QuerySet<(
+        Query<&ExperiencePoints>,
+        Query<(Entity, &mut CurrentExperience, &NextLevelExperience)>,
+    )>,
+    mut events: EventReader<DeathEvent>,
+) {
+    for event in events.iter() {
+        if let Ok(experience) = queryset.q0().get(event.defender) {
+            let drop_experience = experience.0.clone();
+            if let Ok((_, mut cur, _)) = queryset.q1_mut().get_mut(event.attacker) {
+                cur.0 += drop_experience;
+            }
+        }
+    }
+}
+
+pub fn create_combat_text(
     parent: Entity,
     text: String,
     commands: &mut Commands,

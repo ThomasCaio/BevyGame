@@ -1,4 +1,4 @@
-use crate::combat::{Combat, CombatText, Health};
+use crate::combat::{create_combat_text, Combat, CombatText, Health};
 use crate::config::TILE_SIZE;
 use crate::{item::*, Bars, HealthManaBar, HealthManaBarBundle};
 use bevy::core::Timer;
@@ -13,7 +13,65 @@ impl Plugin for EntityPlugin {
             .add_system(insert_entity_name.system())
             .add_system(insert_healthbar.system())
             .add_system(insert_entity_combat.system())
+            .add_system(exp_change.system())
+            .add_system(level_up.system())
             .add_system(combat_text.system());
+    }
+}
+
+#[derive(Debug)]
+pub struct Level(pub u32);
+#[derive(Debug)]
+pub struct CurrentExperience(pub u32);
+#[derive(Debug)]
+pub struct NextLevelExperience(pub u32);
+
+#[derive(Bundle, Debug)]
+struct Levelling {
+    level: Level,
+    current_experience: CurrentExperience,
+    next_level_experience: NextLevelExperience,
+}
+
+impl Default for Levelling {
+    fn default() -> Self {
+        Self {
+            level: Level(0),
+            current_experience: CurrentExperience(0),
+            next_level_experience: NextLevelExperience(100),
+        }
+    }
+}
+
+fn exp_change(
+    mut query: Query<(&mut CurrentExperience, &mut NextLevelExperience, &mut Level), Changed<CurrentExperience>>,
+) {
+    for (mut cur, mut next, mut lvl) in query.iter_mut() {
+        if cur.0 >= next.0 {
+            cur.0 -= next.0;
+            lvl.0 += 1;
+            next.0 = lvl.0 * (((lvl.0 * 100) as f32 * 1.2) as u32);
+            println!("{:?}", (lvl, cur, next));
+        }
+    }
+}
+
+fn level_up(
+    mut commands: Commands,
+    query: Query<Entity, Changed<Level>>,
+    asset_server: Res<AssetServer>,
+) {
+    for entity in query.iter() {
+        create_combat_text(
+            entity,
+            "Level up!".to_string(),
+            &mut commands,
+            &asset_server,
+            None,
+            None,
+            None,
+            None,
+        )
     }
 }
 
@@ -131,6 +189,8 @@ pub struct PlayerComponents {
 
     #[bundle]
     combat: Combat,
+    #[bundle]
+    levelling: Levelling,
 }
 
 impl PlayerComponents {
@@ -162,6 +222,7 @@ impl Default for PlayerComponents {
             equipments: Equipments::default(),
             inventory: Vec::new(),
             body: Body,
+            levelling: Levelling::default(),
         }
     }
 }

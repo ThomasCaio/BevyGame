@@ -18,7 +18,7 @@ impl Plugin for AiPlugin {
     }
 }
 
-struct ExperiencePoints(u32);
+pub struct ExperiencePoints(pub u32);
 
 #[derive(Bundle)]
 pub struct MonsterBundle {
@@ -56,7 +56,7 @@ impl Default for MonsterBundle {
                 ..Default::default()
             },
             combat: Combat::default(),
-            experience: ExperiencePoints(0),
+            experience: ExperiencePoints(100),
         }
     }
 }
@@ -75,21 +75,14 @@ impl Default for Monster {
     }
 }
 
-fn calculate_distance(t1: Vec3, t2: Vec3) -> f32 {
-    f32::sqrt(f32::powf(t2.x - t1.x, 2.) + f32::powf(t2.y - t1.y, 2.))
-}
-
 fn find_an_enemy(
     mut monsters: Query<(&Transform, &mut Monster)>,
     players: Query<(Entity, &Name, &Transform), With<Player>>,
 ) {
     for (m_transform, mut monster) in monsters.iter_mut() {
-        for (p_entity, p_name, p_transform) in players.iter() {
-            if calculate_distance(m_transform.translation, p_transform.translation)
-                < monster.vision_range
-            {
+        for (p_entity, _, p_transform) in players.iter() {
+            if m_transform.translation.distance(p_transform.translation) < monster.vision_range {
                 monster.enemy = Some(p_entity);
-                // println!("{:?}", (p_name));
                 break;
             }
             monster.enemy = None;
@@ -102,7 +95,7 @@ fn monster_ai(
     players: Query<(Entity, &Player, &Transform)>,
     mut move_events: EventWriter<MoveEvent>,
 ) {
-    for (m_entity, mut monster, m_transform, mut m_speed) in monsters.iter_mut() {
+    for (m_entity, monster, m_transform, _) in monsters.iter_mut() {
         for (p_entity, _, p_transform) in players.iter() {
             if let Some(me) = monster.enemy {
                 if me == p_entity {
@@ -115,9 +108,9 @@ fn monster_ai(
 }
 
 fn follow_enemy(m_transform: Transform, p_transform: Transform) -> Vec3 {
-    let mut x: f32 = 0.;
-    let mut y: f32 = 0.;
-    let mut z: f32 = 0.;
+    let x;
+    let y;
+    let z;
     if m_transform.translation.x < p_transform.translation.x {
         x = TILE_SIZE;
     } else if m_transform.translation.x > p_transform.translation.x {
