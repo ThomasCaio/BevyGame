@@ -29,7 +29,6 @@ impl Plugin for CombatPlugin {
             .add_event::<DeathEvent>()
             .add_event::<SpawnEvent>()
             .add_event::<CombatText>()
-            .add_event::<ComplexDamageEvent>()
             .add_system(attack_system.system())
             .add_system(miss_system.system())
             .add_system(attack_system.system())
@@ -45,7 +44,7 @@ impl Plugin for CombatPlugin {
 pub struct DeathEvent {
     attacker: Entity,
     defender: Entity,
-    damage: ComplexDamage,
+    damage: DamageSet,
 }
 
 #[derive(Debug)]
@@ -151,7 +150,6 @@ impl Default for Attack {
     }
 }
 
-
 #[derive(Debug)]
 struct AttackEvent {
     attacker: Entity,
@@ -166,25 +164,18 @@ struct MissEvent {
 struct ResistanceEvent {
     attacker: Entity,
     defender: Entity,
-    damage: ComplexDamage,
+    damage: DamageSet,
 }
 struct BlockEvent {
     attacker: Entity,
     defender: Entity,
-    damage: ComplexDamage,
+    damage: DamageSet,
 }
 #[derive(Debug)]
 struct DamageEvent {
     attacker: Entity,
     defender: Entity,
-    damage: ComplexDamage,
-}
-
-#[derive(Debug)]
-struct ComplexDamageEvent {
-    attacker: Entity,
-    defender: Entity,
-    damage: ComplexDamage,
+    damage: DamageSet,
 }
 
 #[derive(Debug)]
@@ -198,98 +189,7 @@ struct PassiveEvent {
 struct PassiveSpell;
 
 #[derive(Debug, Clone)]
-struct ComplexDamage {
-    physical: Damage,
-    fire: Damage,
-    water: Damage,
-    air: Damage,
-    earth: Damage,
-    holy: Damage,
-    death: Damage,
-    lifedrain: Damage,
-    manadrain: Damage,
-}
-
-impl IntoIterator for ComplexDamage {
-    type Item = Damage;
-    type IntoIter = ComplexIntoIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ComplexIntoIterator {
-            complex: self,
-            index: 0,
-        }
-    }
-}
-
-pub struct ComplexIntoIterator {
-    complex: ComplexDamage,
-    index: usize,
-}
-
-impl Iterator for ComplexIntoIterator {
-    type Item = Damage;
-
-    fn next(&mut self) -> Option<Damage> {
-        let result = match self.index {
-            0 => self.complex.physical,
-            1 => self.complex.fire,
-            2 => self.complex.water,
-            3 => self.complex.air,
-            4 => self.complex.earth,
-            5 => self.complex.holy,
-            6 => self.complex.death,
-            7 => self.complex.lifedrain,
-            8 => self.complex.manadrain,
-            _ => return None,
-        };
-        self.index += 1;
-        Some(result)
-    }
-}
-
-impl Default for ComplexDamage {
-    fn default() -> Self {
-        ComplexDamage {
-            physical: Damage {
-                value: 0.,
-                dtype: DamageType::Physical,
-            },
-            fire: Damage {
-                value: 0.,
-                dtype: DamageType::Fire,
-            },
-            water: Damage {
-                value: 0.,
-                dtype: DamageType::Water,
-            },
-            air: Damage {
-                value: 0.,
-                dtype: DamageType::Air,
-            },
-            earth: Damage {
-                value: 0.,
-                dtype: DamageType::Earth,
-            },
-            holy: Damage {
-                value: 0.,
-                dtype: DamageType::Holy,
-            },
-            death: Damage {
-                value: 0.,
-                dtype: DamageType::Death,
-            },
-            lifedrain: Damage {
-                value: 0.,
-                dtype: DamageType::LifeDrain,
-            },
-            manadrain: Damage {
-                value: 0.,
-                dtype: DamageType::ManaDrain,
-            },
-        }
-    }
-}
+pub struct DamageSet(pub Vec<Damage>);
 
 fn passive_trigger() {
     // TODO: Thorns, Critical Strike, Bleeding, Burning, Poison, Etc.
@@ -337,32 +237,19 @@ fn hit_system(
     mut attacks: Query<(&mut Attack, Option<&Equipments>)>,
 ) {
     for hit in hit_events.iter() {
-        let mut complex_damage = ComplexDamage::default();
+        let mut damage_set = DamageSet(vec![]);
         if let Ok((attacker_attack, Some(attacker_equipment))) = attacks.get_mut(hit.attacker) {
-            complex_damage.physical = attacker_attack.damage;
-            complex_damage.physical.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Physical));
-            complex_damage.fire.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Fire));
-            complex_damage.water.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Water));
-            complex_damage.air.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Air));
-            complex_damage.earth.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Earth));
-            complex_damage.holy.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Holy));
-            complex_damage.death.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::Death));
-            complex_damage.lifedrain.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::LifeDrain));
-            complex_damage.manadrain.value +=
-                attacker_equipment.get_attributes(AttributeType::Damage(DamageType::ManaDrain));
+            damage_set = attacker_equipment.get_damage_set();
+            damage_set.0.iter_mut().for_each(|&mut mut dmg| {
+                if dmg.dtype == DamageType::Physical {
+                    dmg.value += attacker_attack.damage.value;
+                }
+            });
         }
         resistance_events.send(ResistanceEvent {
             attacker: hit.attacker,
             defender: hit.defender,
-            damage: complex_damage,
+            damage: damage_set,
         });
     }
 }
@@ -399,47 +286,19 @@ fn resistance_system(
     mut query: Query<Option<&Equipments>>,
 ) {
     for block in resistance_events.iter() {
-        let mut complex_damage = block.damage.clone();
+        let mut damage_set = block.damage.clone();
         if let Ok(Some(defender_equipments)) = query.get_mut(block.defender) {
-            complex_damage.physical.value -= complex_damage.physical.value
-                * (defender_equipments
-                    .get_attributes(AttributeType::Resistance(DamageType::Physical))
-                    / 100.);
-            complex_damage.fire.value -= complex_damage.physical.value
-                * (defender_equipments.get_attributes(AttributeType::Resistance(DamageType::Fire))
-                    / 100.);
-            complex_damage.water.value -= complex_damage.physical.value
-                * (defender_equipments
-                    .get_attributes(AttributeType::Resistance(DamageType::Water))
-                    / 100.);
-            complex_damage.air.value -= complex_damage.physical.value
-                * (defender_equipments.get_attributes(AttributeType::Resistance(DamageType::Air))
-                    / 100.);
-            complex_damage.earth.value -= complex_damage.physical.value
-                * (defender_equipments
-                    .get_attributes(AttributeType::Resistance(DamageType::Earth))
-                    / 100.);
-            complex_damage.holy.value -= complex_damage.physical.value
-                * (defender_equipments.get_attributes(AttributeType::Resistance(DamageType::Holy))
-                    / 100.);
-            complex_damage.death.value -= complex_damage.physical.value
-                * (defender_equipments
-                    .get_attributes(AttributeType::Resistance(DamageType::Death))
-                    / 100.);
-            complex_damage.lifedrain.value -= complex_damage.physical.value
-                * (defender_equipments
-                    .get_attributes(AttributeType::Resistance(DamageType::LifeDrain))
-                    / 100.);
-            complex_damage.manadrain.value -= complex_damage.physical.value
-                * (defender_equipments
-                    .get_attributes(AttributeType::Resistance(DamageType::ManaDrain))
-                    / 100.);
+            damage_set.0.iter_mut().for_each(|&mut mut dmg| {
+                let factor =
+                    defender_equipments.get_attributes(AttributeType::Resistance(dmg.dtype)) / 100.;
+                dmg.value -= dmg.value * factor;
+            });
         }
         block_events.send(BlockEvent {
             attacker: block.attacker,
             defender: block.defender,
-            damage: complex_damage,
-        })
+            damage: damage_set,
+        });
     }
 }
 
@@ -449,26 +308,32 @@ fn block_system(
     mut query: Query<Option<&Equipments>>,
 ) {
     for resistance in block_events.iter() {
-        let mut complex_damage = resistance.damage.clone();
+        let mut damage_set = resistance.damage.clone();
         if let Ok(Some(defender_equipments)) = query.get_mut(resistance.defender) {
             let total_block = defender_equipments.get_attributes(AttributeType::Block);
-            complex_damage.physical.value -= total_block;
-            if complex_damage.physical.value < 0. {
-                complex_damage.physical.value = 0.;
-            }
+            damage_set.0.iter_mut().for_each(|&mut mut dmg| {
+                if dmg.dtype == DamageType::Physical {
+                    dmg.value -= total_block;
+                    if dmg.value < 0. {
+                        dmg.value = 0.;
+                    }
+                }
+            });
         }
         damage_events.send(DamageEvent {
             attacker: resistance.attacker,
             defender: resistance.defender,
-            damage: complex_damage,
+            damage: damage_set,
         })
     }
 }
 
-fn damage_color(damage: ComplexDamage) -> Color {
+// Não está printando o valor do dano. Revisar todo esquema do DamageSet através dos eventos.
+
+fn damage_color(damage: DamageSet) -> Color {
     let mut dtype = DamageType::Physical;
     let last_value = 0.;
-    for dmg in damage {
+    for dmg in damage.0 {
         if dmg.value > last_value {
             dtype = dmg.dtype;
         }
@@ -494,10 +359,10 @@ fn damage_system(
     mut death_events: EventWriter<DeathEvent>,
 ) {
     for dmg in damage_event.iter() {
-        let complex_damage = dmg.damage.clone();
+        let damage_set = dmg.damage.clone();
         if let Ok(mut health) = query.get_mut(dmg.defender) {
             let mut total_damage = 0.;
-            for d in complex_damage {
+            for d in damage_set.0.iter() {
                 total_damage += d.value;
             }
             health.value -= total_damage;

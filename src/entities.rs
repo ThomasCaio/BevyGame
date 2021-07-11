@@ -44,7 +44,10 @@ impl Default for Levelling {
 }
 
 fn exp_change(
-    mut query: Query<(&mut CurrentExperience, &mut NextLevelExperience, &mut Level), Changed<CurrentExperience>>,
+    mut query: Query<
+        (&mut CurrentExperience, &mut NextLevelExperience, &mut Level),
+        Changed<CurrentExperience>,
+    >,
 ) {
     for (mut cur, mut next, mut lvl) in query.iter_mut() {
         if cur.0 >= next.0 {

@@ -1,4 +1,4 @@
-use crate::combat::DamageType;
+use crate::combat::{Damage, DamageSet, DamageType};
 
 #[derive(Debug, Clone)]
 pub struct Equipments {
@@ -30,7 +30,6 @@ impl Equipments {
         for item in equipments {
             if let Some(t) = item {
                 for attr in &t.attributes {
-                    // println!("{:?} - {:?}", attr.attribute_type, attribute);
                     if attr.attribute_type == attribute {
                         total_value += attr.value;
                     }
@@ -38,6 +37,65 @@ impl Equipments {
             }
         }
         total_value
+    }
+
+    pub fn get_damage_set(&self) -> DamageSet {
+        let mut damage_set = vec![];
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Physical)),
+                dtype: DamageType::Physical,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Fire)),
+                dtype: DamageType::Fire,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Water)),
+                dtype: DamageType::Water,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Air)),
+                dtype: DamageType::Air,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Earth)),
+                dtype: DamageType::Earth,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Holy)),
+                dtype: DamageType::Holy,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::Death)),
+                dtype: DamageType::Death,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::LifeDrain)),
+                dtype: DamageType::LifeDrain,
+            },
+        );
+        damage_set.push(
+            Damage {
+                value: self.get_attributes(AttributeType::Damage(DamageType::ManaDrain)),
+                dtype: DamageType::ManaDrain,
+            },
+        );
+        DamageSet(damage_set)
     }
 }
 
